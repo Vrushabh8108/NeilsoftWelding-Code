@@ -19,46 +19,24 @@ namespace Welding_Calculation.Command
     internal class WeldingQuantityCalculation : IExternalCommand
     {
         public static Dictionary<string, double> result;
-
+        static List<Task> tasks = new List<Task>();
         public static Stopwatch stopwatch;
 
-        public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
+        public  Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
             try
             {
                 stopwatch = new Stopwatch();
                 Autodesk.Revit.DB.Document actDoc = commandData.Application.ActiveUIDocument.Document;
+                FilteredElementCollector elem = new FilteredElementCollector(actDoc).OfClass(typeof(FamilyInstance)).WhereElementIsNotElementType();
                 result = new Dictionary<string, double>();
                 stopwatch.Start();
-
-                //Gussetplate_SingleBrace
-                Welding_GussetPlateSingleBrace(actDoc);
-
-
-                //Gussetplate_DoubleBrace
-                Welding_GussetPlateDoubleBrace(actDoc);
-
-                //FinPlate
-                Welding_FinPlate(actDoc);
-
-                Welding_WebCoverPlate(actDoc);
-
-                Welding_FlangeCoverPlate(actDoc);
-
-                Welding_RibPlateSingleBrace(actDoc);
-
-                Welding_RibPlateDoubleBrace(actDoc);
-
-                Welding_BeamStiffnerplate(actDoc);
-
-                Welding_BeamStiffnerplateFacade(actDoc);
-
-                //Welding_BeamStiffnerPlateRoof(actDoc);
-
-
-                Welding_SingleBraceLeganchorBolt(actDoc);
-
-                Welding_DoubleBraceLeganchorBolt(actDoc);
+                 CallinAsyncMethod(actDoc,elem);
+                stopwatch.Stop();
+                result.Add(@"\nTotal time Required", stopwatch.ElapsedMilliseconds / 1000);
+                JsonConvert.SerializeObject(result);
+                string filePath = "output1.json";
+                File.WriteAllText(filePath, JsonConvert.SerializeObject(result));
 
             }
             catch (Exception ex)
@@ -68,12 +46,47 @@ namespace Welding_Calculation.Command
             return Result.Succeeded;
         }
 
+        public static async Task CallinAsyncMethod(Document actDoc,FilteredElementCollector elem)
+        {
 
+            //Gussetplate_SingleBrace
+            tasks.Add(Welding_GussetPlateSingleBrace(actDoc,elem));
+
+
+            //Gussetplate_DoubleBrace
+            tasks.Add(Welding_GussetPlateDoubleBrace(actDoc,elem));
+
+            //FinPlate
+            tasks.Add(Welding_FinPlate(actDoc,elem));
+
+            tasks.Add(Welding_WebCoverPlate(actDoc,elem));
+
+            tasks.Add(Welding_FlangeCoverPlate(actDoc,elem));
+
+            tasks.Add(Welding_RibPlateSingleBrace(actDoc,elem));
+
+            tasks.Add(Welding_RibPlateDoubleBrace(actDoc,elem));
+
+            tasks.Add(Welding_BeamStiffnerplate(actDoc,elem));
+
+            tasks.Add(Welding_BeamStiffnerplateFacade(actDoc,elem));
+
+            //Welding_BeamStiffnerPlateRoof(actDoc);
+
+
+            tasks.Add(Welding_SingleBraceLeganchorBolt(actDoc,elem));
+
+            tasks.Add(Welding_DoubleBraceLeganchorBolt(actDoc,elem));
+
+            await Task.WhenAll(tasks);
+
+
+        }
 
         //[Gusset Plate - Single Brace]
-        public static void Welding_GussetPlateSingleBrace(Document actDoc)
+        public static async Task Welding_GussetPlateSingleBrace(Document actDoc, FilteredElementCollector elem)
         {
-            FilteredElementCollector elem = new FilteredElementCollector(actDoc).OfClass(typeof(FamilyInstance)).WhereElementIsNotElementType();
+            //FilteredElementCollector elem = new FilteredElementCollector(actDoc).OfClass(typeof(FamilyInstance)).WhereElementIsNotElementType();
 
             IList<Element> IlstEqpFamInstance1 = elem.Where(f => (f as FamilyInstance).Symbol.FamilyName.Contains("NS_Gusset Plate - Single Brace")).ToList();
 
@@ -104,16 +117,15 @@ namespace Welding_Calculation.Command
                     }
                 }
 
-
             }
             GussetPlateSingleBrace_Formula = ((GussetPlateSingleBrace_Length + GussetPlateSingleBrace_Thickness) * 2) * 2;
             result.Add("GussetPlateSingleBrace_Formula", GussetPlateSingleBrace_Formula);
         }
 
         //[Gusset Plate - Double Brace]
-        public static void Welding_GussetPlateDoubleBrace(Document actDoc)
+        public static async Task Welding_GussetPlateDoubleBrace(Document actDoc, FilteredElementCollector elem)
         {
-            FilteredElementCollector elem = new FilteredElementCollector(actDoc).OfClass(typeof(FamilyInstance)).WhereElementIsNotElementType();
+           // FilteredElementCollector elem = new FilteredElementCollector(actDoc).OfClass(typeof(FamilyInstance)).WhereElementIsNotElementType();
             //List<FamilySymbol> filteredFamilySymbols = elem.Cast<FamilySymbol>().Where(symbol => symbol.Family.Name.Contains("Gusset Plate - Double Brace")).ToList();
             //IList<Element> IlstEqpFamInstance = elem.OfClass(typeof(FamilyInstance)).Where(f => (f as FamilyInstance).Symbol.FamilyName.Contains("Gusset Plate - Double Brace")).ToList();
             IList<Element> IlstEqpFamInstance = elem.Where(f => (f as FamilyInstance).Symbol.FamilyName.Contains("NS_Gusset Plate - Double Brace")).ToList();
@@ -149,9 +161,9 @@ namespace Welding_Calculation.Command
         }
 
         //[Fin plate]
-        public static void Welding_FinPlate(Document actDoc)
+        public static async Task Welding_FinPlate(Document actDoc,FilteredElementCollector elem)
         {
-            FilteredElementCollector elem = new FilteredElementCollector(actDoc).OfClass(typeof(FamilyInstance)).WhereElementIsNotElementType();
+           // FilteredElementCollector elem = new FilteredElementCollector(actDoc).OfClass(typeof(FamilyInstance)).WhereElementIsNotElementType();
 
             IList<Element> IlstEqpFamInstance = elem.Where(f => (f as FamilyInstance).Symbol.FamilyName.Contains("NS_Fin Plate")).ToList();
 
@@ -161,7 +173,6 @@ namespace Welding_Calculation.Command
             double finPlate_Thickness = 0;
             foreach (FamilyInstance ele in IlstEqpFamInstance)
             {
-
                 if (ele != null)
                 {
                     if (ele.LookupParameter("NS_P_Filter").AsValueString().Equals("Fin Plate") && ele.LookupParameter("NS_P_Group").AsValueString().Equals("Gusset Plate"))
@@ -187,9 +198,9 @@ namespace Welding_Calculation.Command
         }
 
         //[Web cover plate]
-        public static void Welding_WebCoverPlate(Document actDoc)
+        public static async Task Welding_WebCoverPlate(Document actDoc,FilteredElementCollector elem)
         {
-            FilteredElementCollector elem = new FilteredElementCollector(actDoc).OfClass(typeof(FamilyInstance)).WhereElementIsNotElementType();
+            //FilteredElementCollector elem = new FilteredElementCollector(actDoc).OfClass(typeof(FamilyInstance)).WhereElementIsNotElementType();
 
             IList<Element> IlstEqpFamInstance = elem.Where(f => (f as FamilyInstance).Symbol.FamilyName.Contains("NS_Web Cover Plate")).ToList();
 
@@ -201,7 +212,6 @@ namespace Welding_Calculation.Command
             {
                 if (ele != null)
                 {
-
                     if (ele.LookupParameter("NS_P_Filter").AsValueString().Equals("Web Cover Plate") && ele.LookupParameter("NS_P_Group").AsValueString().Equals("First Brace"))
                     {
                         ElementId typeId = ele.GetTypeId();
@@ -217,7 +227,6 @@ namespace Welding_Calculation.Command
                         {
                             webCoverPlate_Width += Convert.ToDouble(widthPara.AsValueString());
                         }
-
                     }
                 }
 
@@ -228,9 +237,9 @@ namespace Welding_Calculation.Command
         }
 
         //[FlangeCoverPlate]
-        public static void Welding_FlangeCoverPlate(Document actDoc)
+        public static async Task Welding_FlangeCoverPlate(Document actDoc, FilteredElementCollector elem)
         {
-            FilteredElementCollector elem = new FilteredElementCollector(actDoc).OfClass(typeof(FamilyInstance)).WhereElementIsNotElementType();
+            //FilteredElementCollector elem = new FilteredElementCollector(actDoc).OfClass(typeof(FamilyInstance)).WhereElementIsNotElementType();
 
             IList<Element> IlstEqpFamInstance = elem.Where(f => (f as FamilyInstance).Symbol.FamilyName.Contains("NS_Flange Cover Plate")).ToList();
 
@@ -269,9 +278,9 @@ namespace Welding_Calculation.Command
 
 
         // [Rib Plate- Brace Leg Single Brace Assembly]
-        public static void Welding_RibPlateSingleBrace(Document actDoc)
+        public static async Task Welding_RibPlateSingleBrace(Document actDoc, FilteredElementCollector elem )
         {
-            FilteredElementCollector elem = new FilteredElementCollector(actDoc).OfClass(typeof(FamilyInstance)).WhereElementIsNotElementType();
+            //FilteredElementCollector elem = new FilteredElementCollector(actDoc).OfClass(typeof(FamilyInstance)).WhereElementIsNotElementType();
 
             IList<Element> IlstEqpFamInstance = elem.Where(f => (f as FamilyInstance).Symbol.FamilyName.Contains("NS_Rib Plate")).ToList();
 
@@ -307,9 +316,9 @@ namespace Welding_Calculation.Command
         }
 
         //[ Rib Plate- Brace Leg Single Brace Assembly]
-        public static void Welding_RibPlateDoubleBrace(Document actDoc)
+        public static async Task Welding_RibPlateDoubleBrace(Document actDoc,FilteredElementCollector elem)
         {
-            FilteredElementCollector elem = new FilteredElementCollector(actDoc).OfClass(typeof(FamilyInstance)).WhereElementIsNotElementType();
+           // FilteredElementCollector elem = new FilteredElementCollector(actDoc).OfClass(typeof(FamilyInstance)).WhereElementIsNotElementType();
 
             IList<Element> IlstEqpFamInstance = elem.Where(f => (f as FamilyInstance).Symbol.FamilyName.Contains("NS_Rib Plate")).ToList();
 
@@ -345,9 +354,9 @@ namespace Welding_Calculation.Command
         }
 
         //[Beam stiffner plate-beam flange and beam web]
-        public static void Welding_BeamStiffnerplate(Document actDoc)
+        public static async Task Welding_BeamStiffnerplate(Document actDoc,FilteredElementCollector elem)
         {
-            FilteredElementCollector elem = new FilteredElementCollector(actDoc).OfClass(typeof(FamilyInstance)).WhereElementIsNotElementType();
+           // FilteredElementCollector elem = new FilteredElementCollector(actDoc).OfClass(typeof(FamilyInstance)).WhereElementIsNotElementType();
 
             IList<Element> IlstEqpFamInstance1 = elem.Where(f => (f as FamilyInstance).Symbol.FamilyName.Contains("NS_Beam Stiffener")).ToList();
 
@@ -412,9 +421,9 @@ namespace Welding_Calculation.Command
 
 
         //[Beam stiffner plate-facade]
-        public static void Welding_BeamStiffnerplateFacade(Document actDoc)
+        public static async Task Welding_BeamStiffnerplateFacade(Document actDoc,FilteredElementCollector elem)
         {
-            FilteredElementCollector elem = new FilteredElementCollector(actDoc).OfClass(typeof(FamilyInstance)).WhereElementIsNotElementType();
+            //FilteredElementCollector elem = new FilteredElementCollector(actDoc).OfClass(typeof(FamilyInstance)).WhereElementIsNotElementType();
 
             IList<Element> IlstEqpFamInstance1 = elem.Where(f => (f as FamilyInstance).Symbol.FamilyName.Contains("NS_Beam Stiffener")).ToList();
 
@@ -489,9 +498,9 @@ namespace Welding_Calculation.Command
 
 
         //Anchor Bolt - Brace Leg Double Brace Assembly
-        public static void Welding_SingleBraceLeganchorBolt(Document actDoc)
+        public static async Task Welding_SingleBraceLeganchorBolt(Document actDoc,FilteredElementCollector elem)
         {
-            FilteredElementCollector elem = new FilteredElementCollector(actDoc).OfClass(typeof(FamilyInstance)).WhereElementIsNotElementType();
+            //FilteredElementCollector elem = new FilteredElementCollector(actDoc).OfClass(typeof(FamilyInstance)).WhereElementIsNotElementType();
 
             IList<Element> IlstEqpFamInstance = elem.Where(f => (f as FamilyInstance).Symbol.FamilyName.Contains("NS_Brace Leg Anchor Bolt")).ToList();
 
@@ -531,9 +540,9 @@ namespace Welding_Calculation.Command
         }
 
         //[Anchor Bolt - Brace Leg Double Brace Assembly]
-        public static void Welding_DoubleBraceLeganchorBolt(Document actDoc)
+        public static async Task Welding_DoubleBraceLeganchorBolt(Document actDoc,FilteredElementCollector elem)
         {
-            FilteredElementCollector elem = new FilteredElementCollector(actDoc).OfClass(typeof(FamilyInstance)).WhereElementIsNotElementType();
+           // FilteredElementCollector elem = new FilteredElementCollector(actDoc).OfClass(typeof(FamilyInstance)).WhereElementIsNotElementType();
 
             IList<Element> IlstEqpFamInstance = elem.Where(f => (f as FamilyInstance).Symbol.FamilyName.Contains("NS_Brace Leg Anchor Bolt")).ToList();
 
@@ -568,11 +577,7 @@ namespace Welding_Calculation.Command
             }
             doubleBraceLeganchorBolt_Formula = ((BraceLeganchorBolt_Length + BraceLeganchorBolt_Width) * 2) * 2;
             result.Add("doubleBraceLeganchorBolt_Formula", doubleBraceLeganchorBolt_Formula);
-            stopwatch.Stop();
-            result.Add(@"\nTotal time Required", stopwatch.ElapsedMilliseconds / 1000);
-            JsonConvert.SerializeObject(result);
-            string filePath = "output.json";
-            File.WriteAllText(filePath, JsonConvert.SerializeObject(result));
+         
         }
 
     }

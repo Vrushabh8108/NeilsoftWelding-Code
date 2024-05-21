@@ -22,7 +22,7 @@ namespace Welding_Calculation
             try
             {
                 application.CreateRibbonTab("Welding Quantities");
-                RibbonPanel panel= application.CreateRibbonPanel("Welding Quantities", "Welding");
+                RibbonPanel panel= application.CreateRibbonPanel("Welding Quantities", "Welding Panel1");
 
                 string assStr=Assembly.GetExecutingAssembly().Location;
 
